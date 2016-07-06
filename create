@@ -1,0 +1,198 @@
+package CreateContent;
+
+import java.io.File;
+import java.security.InvalidKeyException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.StringTokenizer;
+
+import com.windfire.apis.asysConnectData;
+import com.windfire.apis.asys.asysUsrElement;
+
+import rosis.crypt.module.eSonicCrypt;
+
+public class CreateApi {
+
+	Connection conn;
+	String dbUrl = "";
+	String id = "";
+	String pwd = "";
+	int rs;
+	PreparedStatement pstmt = null;
+	public asysConnectData con = null;
+
+	public CreateApi() {
+		con = new asysConnectData("****", ****, "API_TEST", "SUPER", "SUPER");
+		// dbUrl = "jdbc:tibero:thin:@***:****:krmadb";
+		// id = "***";
+		// pwd = "***";
+		dbUrl = "jdbc:oracle:thin:@***";
+		id = "***";
+		pwd = "***";
+	}
+
+	public String create(String path) {
+		asysUsrElement uePage = new asysUsrElement(con);
+		uePage.setInfo("AOS_IMAGE", "NONE", "IMAGE", path);
+		uePage.m_cClassId = "KRMA_CC";
+		// 사용자 인덱스 지정
+		uePage.addIndexValue("DOC", "f1", "1");
+		int ret = uePage.create("XVARM_MAIN");
+		// Check for errors - last message always in API object
+		if (ret != 0) {
+			System.out.println("Error, createSimple, " + uePage.getLastError());
+			System.out.println("Create Fail, Process Dead.");
+			System.exit(0);
+			return "fail";
+		} else {
+			System.out.println("Success, createSimple, " + uePage.m_elementId);
+			return uePage.m_elementId;
+		}
+	}
+
+	public void delete(String elementId) {
+		asysUsrElement uePage1 = new asysUsrElement(con);
+		uePage1.m_elementId = elementId;
+		int res = uePage1.delete();
+		if (res != 0)
+			System.out.println("Delete error =  " + uePage1.getLastError());
+		else
+			System.out.println("Delete suceess");
+	}
+
+	public boolean insert(String[] values, String elementid) {
+	
+
+		if (conn == null) {
+			try {
+				// Class.forName("com.tmax.tibero.jdbc.TbDriver");
+				Class.forName("oracle.jdbc.driver.OracleDriver");
+				conn = DriverManager.getConnection(dbUrl, id, pwd);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		try {
+			String sql = "insert into TB_IDNF_MST values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, elementid);
+			for (int i = 0; i < values.length; i++) {
+				pstmt.setString(i + 2, values[i]);
+			}
+			rs = pstmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			System.out.println("DB Insert Fail, Image Create will Canceled");
+			delete("XVARM_MAIN::" + elementid + "::IMAGE");
+			return false;
+		}
+
+		return true;
+	}
+	
+	public boolean Incoder(String filename) {
+		int Judge2int = 0;
+		try {
+			// 성공시 1 리턴
+			Judge2int = eSonicCrypt.RS_EncodeIdx(filename, filename + "_enc", *);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		    System.out.println(e.getMessage());
+		    System.out.println("Image Encrypt Failed. Done.");
+		    System.exit(0);
+		}
+		if (Judge2int == 1)
+			return true;
+		else
+			return false;
+	}
+
+	public void discon() {
+		if (con != null) {
+			con.close();
+			con = null;
+		}}
+	public void DBdiscon() {
+		if (conn != null) {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			conn = null;
+		}}
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		CreateApi s = new CreateApi();
+		/*String WORK_CODE = "";      // 업무우형
+		String BIG_CLASS = "";      // 대분류
+		String MID_CLASS = "";      // 중분류
+		String SUB_CLASS = "";      // 소분류
+		String DOC_TYPE_CODE = "";  // 문서유형(세분류)
+		String DOC_CODE = "";       // 문서코드
+		String DOC_FULL_CODE = "";  // 풀코드(10자리)
+		String ACCIDENT_NO = "";    // 사고번호
+		String HND_COVER = "";      // 담보
+		String DMGE_NO = "";        // 서열
+		String SUIT_NO = "";        // 소송번호
+		String FILE_NAME = "";      // 파일명
+		String FILE_PATH = "";      // 파일경로
+		String INSERT_ID = "";      // 등록자아이디
+		String INSERT_DT = "";      // 등록일자
+		String UPDATE_ID = "";      // 수정자아이디
+		String UPDATE_DT = "";      // 수정일자
+		String BIZ_NO = "";         // 사업자번호
+		String SUIT_SEQ = "";       // 소송순번
+		// 19개 키값
+		
+		String[] values = new String[] { WORK_CODE, BIG_CLASS, MID_CLASS, SUB_CLASS, DOC_TYPE_CODE, DOC_CODE,
+				DOC_FULL_CODE, ACCIDENT_NO, HND_COVER, DMGE_NO, SUIT_NO, FILE_NAME, FILE_PATH, INSERT_ID, INSERT_DT,
+				UPDATE_ID, UPDATE_DT, BIZ_NO, SUIT_SEQ };*/
+		String[] values = new String[19];
+		
+		if(args.length!=19){
+			System.out.println("Number of Argument are not Correct");
+			System.exit(0);
+		}else{
+			for(int i = 0; i<args.length;i++){
+				if(args[i].equals("null"))
+					args[i]="";
+				values[i]=args[i];
+			}
+		}
+		// 등록 할 이미지 경로
+		String filepath = "C:\\Users\\Oh\\Pictures\\test.jpg";
+		String elementid = "";
+		
+		File crypt = new File(filepath+"_enc");
+		
+		// 파일 암호화
+		if(s.Incoder(filepath)){
+		elementid = s.create(crypt.getAbsolutePath());
+		}
+		//XVARM_MAIN::2016000000000000::IMAGE 에서 가운데 EID만 추출하여 DB INSERT
+		StringTokenizer st = new StringTokenizer(elementid, "::");
+		st.nextToken();
+		elementid = st.nextToken();
+
+		if (s.insert(values, elementid)) {
+			System.out.println("DB insert Success");
+		}
+
+		s.discon();
+		s.DBdiscon();
+		
+		// 암호화된 파일 삭제
+		if(crypt.exists()){
+			crypt.delete();
+		}
+		
+		System.out.println("All Done.");
+	}
+}
